@@ -6,15 +6,12 @@ from utils.antt import calculate_antt_minimum
 def main():
     st.set_page_config(page_title="Calculadora de Frete - Rodotrem", layout="wide")
     st.title("🚛 Calculadora de Frete - Rodotrem 9 Eixos")
-    st.markdown("### Balsas-MA | Volvo FH 540 | Carga Útil: 47,20t")
+    st.markdown("### Balsas-MA | Volvo FH 540 | Carga Útil Padrão: 47.200 kg (47,20 t)")
 
-    st.sidebar.header("Configurações da Viagem")
+    st.sidebar.header("Extrair Quilometragem (Opcional)")
+    if "ocr_distance" not in st.session_state:
+        st.session_state.ocr_distance = 0.0
 
-    if "distance_km" not in st.session_state:
-        st.session_state.distance_km = 0.0
-
-    # Upload da Imagem do Google Maps
-    st.sidebar.subheader("1. Extrair Quilometragem")
     uploaded_file = st.sidebar.file_uploader("Envie um print do Google Maps", type=["jpg", "jpeg", "png"])
 
     if uploaded_file is not None:
@@ -23,25 +20,56 @@ def main():
                 extracted_km = extract_mileage(uploaded_file.getvalue())
                 if extracted_km:
                     st.sidebar.success(f"Distância encontrada: {extracted_km} km")
-                    st.session_state.distance_km = extracted_km
+                    st.session_state.ida_carregado = float(extracted_km)
                 else:
                     st.sidebar.error("Não foi possível extrair a quilometragem da imagem. Insira manualmente.")
 
-    distance_km = st.sidebar.number_input("Distância Total (km - Ida e Volta)", min_value=0.0, value=float(st.session_state.distance_km), step=10.0)
+    st.write("---")
 
-    st.sidebar.subheader("2. Receitas (Frete Casado)")
-    freight_outward = st.sidebar.number_input("Valor do Frete de Ida (R$ - ex: Soja)", min_value=0.0, value=0.0, step=100.0)
-    freight_return = st.sidebar.number_input("Valor do Frete de Volta (R$ - ex: Fertilizante)", min_value=0.0, value=0.0, step=100.0)
+    col_ida, col_volta = st.columns(2)
 
-    total_revenue = freight_outward + freight_return
+    with col_ida:
+        st.header("BLOCO 1: OPERAÇÃO DE IDA (Obrigatório)")
+        st.write("Deslocamento inicial e transporte da carga principal (ex: grãos).")
 
-    if distance_km > 0:
+        ida_km_vazio = st.number_input("KM Rodado Vazio (Deslocamento até a carga)", min_value=0.0, value=0.0, step=10.0, key="ida_vazio")
+        ida_km_carregado = st.number_input("KM Rodado Carregado (Viagem com grãos)", min_value=0.0, step=10.0, key="ida_carregado")
+        ida_valor_tonelada = st.number_input("Valor do Frete de Ida (R$ por tonelada)", min_value=0.0, value=0.0, step=10.0, key="ida_ton")
+
+    with col_volta:
+        st.header("BLOCO 2: OPERAÇÃO DE VOLTA (Opcional)")
+        adicionar_retorno = st.checkbox("Adicionar Frete de Retorno (Calcário/Insumos)", value=False)
+
+        if adicionar_retorno:
+            st.write("Detalhes da viagem de retorno carregado.")
+            volta_km_vazio = st.number_input("KM Vazio de Reposicionamento", min_value=0.0, value=0.0, step=10.0, key="volta_vazio")
+            volta_km_carregado = st.number_input("KM Carregado de Volta", min_value=0.0, value=0.0, step=10.0, key="volta_carregado")
+            volta_valor_tonelada = st.number_input("Valor do Frete de Volta (R$ por tonelada)", min_value=0.0, value=0.0, step=10.0, key="volta_ton")
+        else:
+            st.info("Retorno será calculado automaticamente como VAZIO para a origem.")
+            volta_km_vazio = ida_km_vazio + ida_km_carregado
+            st.write(f"**KM Vazio de Retorno Automático:** {volta_km_vazio} km")
+            volta_km_carregado = 0.0
+            volta_valor_tonelada = 0.0
+
+    st.write("---")
+
+    total_km_carregado = ida_km_carregado + volta_km_carregado
+    total_km_vazio = ida_km_vazio + volta_km_vazio
+    total_km = total_km_carregado + total_km_vazio
+
+    # 47.2 tons is the fixed payload
+    receita_ida = ida_valor_tonelada * 47.2
+    receita_volta = volta_valor_tonelada * 47.2
+    total_revenue = receita_ida + receita_volta
+
+    if total_km > 0:
         # Calcular Custos
-        costs = calculate_costs(distance_km)
+        costs = calculate_costs(total_km_carregado, total_km_vazio)
         total_costs = costs["total_cost"]
 
         # Calcular Piso ANTT
-        antt_minimum = calculate_antt_minimum(distance_km)
+        antt_minimum = calculate_antt_minimum(total_km_carregado, total_km_vazio)
 
         # Calcular Lucro e Margem
         net_profit = total_revenue - total_costs
@@ -60,26 +88,31 @@ def main():
 
         col4.metric("Margem de Lucro Líquida", f"{profit_margin:.2f}%".replace(".", ","), delta=f"R$ {net_profit:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
-        st.subheader("Detalhamento dos Custos")
+        st.subheader("Detalhamento Operacional e de Custos")
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.write(f"**Diesel + Arla:** R$ {costs['fuel_cost'] + (costs['fuel_cost']*0.05*(4.0/6.2)):,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-        c2.write(f"**Pneus:** R$ {costs['tires_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-        c3.write(f"**Manutenção:** R$ {costs['maintenance_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        c1.write(f"**KM Total:** {total_km} km")
+        c1.write(f"- Carregado: {total_km_carregado} km")
+        c1.write(f"- Vazio: {total_km_vazio} km")
+
+        c2.write(f"**Diesel + Arla:** R$ {costs['fuel_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        c3.write(f"**Pneus e Manutenção:** R$ {(costs['tires_cost'] + costs['maintenance_cost']):,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
         c4.write(f"**Pedágios (Est.):** R$ {costs['tolls_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
         st.write("---")
         st.write(f"*Custo Variável Total:* R$ {costs['total_variable_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
         st.write(f"*Custo Fixo Total (Rateado):* R$ {costs['total_fixed_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-        st.write(f"*Custo por KM:* R$ {costs['cost_per_km']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        st.write(f"*Custo Médio por KM:* R$ {costs['cost_per_km']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
         if total_revenue < antt_minimum:
-            st.warning("⚠️ O valor total do frete está abaixo do piso mínimo exigido pela ANTT.")
+            st.error("⚠️ Rota Inviável segundo a ANTT: O valor total do frete está abaixo do piso mínimo.")
+        elif net_profit < 0:
+            st.warning("⚠️ Rota operando em prejuízo, apesar de possível viabilidade legal.")
         else:
-            st.success("✅ O valor total do frete está de acordo com o piso mínimo da ANTT.")
+            st.success("✅ Rota Viável e dentro do piso mínimo da ANTT.")
 
     else:
-        st.info("Insira a distância total da viagem (ida e volta) para visualizar os cálculos.")
+        st.info("Insira as quilometragens para visualizar os cálculos da viagem.")
 
 if __name__ == "__main__":
     main()
