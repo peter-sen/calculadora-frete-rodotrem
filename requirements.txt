@@ -1,13 +1,6 @@
 streamlit
-<<<<<<< HEAD
 pandas
 numpy
 geopy
 requests
-=======
-pytesseract
-opencv-python-headless
-Pillow
-pandas
-numpy
->>>>>>> origin/main
+openrouteservice

@@ -1,16 +1,11 @@
 import streamlit as st
-<<<<<<< HEAD
 from utils.routing import calculate_route_distance
-=======
-from utils.ocr import extract_mileage
->>>>>>> origin/main
 from utils.costs import calculate_costs
 from utils.antt import calculate_antt_minimum
 
 def main():
     st.set_page_config(page_title="Calculadora de Frete - Rodotrem", layout="wide")
     st.title("🚛 Calculadora de Frete - Rodotrem 9 Eixos")
-<<<<<<< HEAD
     st.markdown("### Balsas-MA | Volvo FH 540 | Carga Útil Padrão: 47.200 kg (47,20 t)")
 
     st.sidebar.header("Roteamento Automático")
@@ -93,44 +88,6 @@ def main():
 
         # Calcular Piso ANTT
         antt_minimum = calculate_antt_minimum(total_km_carregado, total_km_vazio)
-=======
-    st.markdown("### Balsas-MA | Volvo FH 540 | Carga Útil: 47,20t")
-
-    st.sidebar.header("Configurações da Viagem")
-
-    if "distance_km" not in st.session_state:
-        st.session_state.distance_km = 0.0
-
-    # Upload da Imagem do Google Maps
-    st.sidebar.subheader("1. Extrair Quilometragem")
-    uploaded_file = st.sidebar.file_uploader("Envie um print do Google Maps", type=["jpg", "jpeg", "png"])
-
-    if uploaded_file is not None:
-        if st.sidebar.button("Extrair KM da Imagem"):
-            with st.spinner("Analisando imagem..."):
-                extracted_km = extract_mileage(uploaded_file.getvalue())
-                if extracted_km:
-                    st.sidebar.success(f"Distância encontrada: {extracted_km} km")
-                    st.session_state.distance_km = extracted_km
-                else:
-                    st.sidebar.error("Não foi possível extrair a quilometragem da imagem. Insira manualmente.")
-
-    distance_km = st.sidebar.number_input("Distância Total (km - Ida e Volta)", min_value=0.0, value=float(st.session_state.distance_km), step=10.0)
-
-    st.sidebar.subheader("2. Receitas (Frete Casado)")
-    freight_outward = st.sidebar.number_input("Valor do Frete de Ida (R$ - ex: Soja)", min_value=0.0, value=0.0, step=100.0)
-    freight_return = st.sidebar.number_input("Valor do Frete de Volta (R$ - ex: Fertilizante)", min_value=0.0, value=0.0, step=100.0)
-
-    total_revenue = freight_outward + freight_return
-
-    if distance_km > 0:
-        # Calcular Custos
-        costs = calculate_costs(distance_km)
-        total_costs = costs["total_cost"]
-
-        # Calcular Piso ANTT
-        antt_minimum = calculate_antt_minimum(distance_km)
->>>>>>> origin/main
 
         # Calcular Lucro e Margem
         net_profit = total_revenue - total_costs
@@ -149,7 +106,6 @@ def main():
 
         col4.metric("Margem de Lucro Líquida", f"{profit_margin:.2f}%".replace(".", ","), delta=f"R$ {net_profit:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
-<<<<<<< HEAD
         st.subheader("Detalhamento Operacional e de Custos")
 
         c1, c2, c3, c4 = st.columns(4)
@@ -159,20 +115,11 @@ def main():
 
         c2.write(f"**Diesel + Arla:** R$ {costs['fuel_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
         c3.write(f"**Pneus e Manutenção:** R$ {(costs['tires_cost'] + costs['maintenance_cost']):,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-=======
-        st.subheader("Detalhamento dos Custos")
-
-        c1, c2, c3, c4 = st.columns(4)
-        c1.write(f"**Diesel + Arla:** R$ {costs['fuel_cost'] + (costs['fuel_cost']*0.05*(4.0/6.2)):,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-        c2.write(f"**Pneus:** R$ {costs['tires_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-        c3.write(f"**Manutenção:** R$ {costs['maintenance_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
->>>>>>> origin/main
         c4.write(f"**Pedágios (Est.):** R$ {costs['tolls_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
         st.write("---")
         st.write(f"*Custo Variável Total:* R$ {costs['total_variable_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
         st.write(f"*Custo Fixo Total (Rateado):* R$ {costs['total_fixed_cost']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-<<<<<<< HEAD
         st.write(f"*Custo Médio por KM:* R$ {costs['cost_per_km']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
         if total_revenue < antt_minimum:
@@ -184,17 +131,6 @@ def main():
 
     else:
         st.info("Insira as quilometragens para visualizar os cálculos da viagem.")
-=======
-        st.write(f"*Custo por KM:* R$ {costs['cost_per_km']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-
-        if total_revenue < antt_minimum:
-            st.warning("⚠️ O valor total do frete está abaixo do piso mínimo exigido pela ANTT.")
-        else:
-            st.success("✅ O valor total do frete está de acordo com o piso mínimo da ANTT.")
-
-    else:
-        st.info("Insira a distância total da viagem (ida e volta) para visualizar os cálculos.")
->>>>>>> origin/main
 
 if __name__ == "__main__":
     main()
