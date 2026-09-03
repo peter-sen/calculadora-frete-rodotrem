@@ -1,6 +1,5 @@
 streamlit
 pandas
 numpy
-geopy
 requests
-openrouteservice
+googlemaps

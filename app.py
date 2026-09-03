@@ -8,31 +8,31 @@ def main():
     st.title("🚛 Calculadora de Frete - Rodotrem 9 Eixos")
     st.markdown("### Balsas-MA | Volvo FH 540 | Carga Útil Padrão: 47.200 kg (47,20 t)")
 
-    st.sidebar.header("Roteamento Automático")
-    st.sidebar.write("Calcule distâncias automaticamente pelas rodovias usando OpenStreetMap e OSRM (100% Gratuito).")
+    st.sidebar.header("Roteamento Automático (Google Maps)")
+    st.sidebar.write("Busque distâncias exatas digitando cidades, fazendas ou empresas.")
 
     st.sidebar.subheader("Rota de Ida")
-    origem_ida = st.sidebar.text_input("Cidade de Origem (Ida)", placeholder="Ex: Balsas, MA")
-    destino_ida = st.sidebar.text_input("Cidade de Destino (Ida)", placeholder="Ex: São Luís, MA")
+    origem_ida = st.sidebar.text_input("Origem (Ida)", placeholder="Ex: Petrosoja, Balsas - MA")
+    destino_ida = st.sidebar.text_input("Destino (Ida)", placeholder="Ex: Porto do Itaqui, São Luís - MA")
 
     st.sidebar.subheader("Rota de Volta (Opcional)")
     adicionar_retorno_auto = st.sidebar.checkbox("Buscar Rota de Retorno", value=False)
     if adicionar_retorno_auto:
-        origem_volta = st.sidebar.text_input("Cidade de Origem (Volta)", value=destino_ida, placeholder="Ex: São Luís, MA")
-        destino_volta = st.sidebar.text_input("Cidade de Destino (Volta)", value=origem_ida, placeholder="Ex: Balsas, MA")
+        origem_volta = st.sidebar.text_input("Origem (Volta)", value=destino_ida, placeholder="Ex: Porto do Itaqui, São Luís - MA")
+        destino_volta = st.sidebar.text_input("Destino (Volta)", value=origem_ida, placeholder="Ex: Petrosoja, Balsas - MA")
     else:
         origem_volta = ""
         destino_volta = ""
 
     if st.sidebar.button("Calcular Distâncias 📍"):
-        with st.spinner("Buscando coordenadas e calculando rota rodoviária..."):
+        with st.spinner("Consultando Google Maps API..."):
             if origem_ida and destino_ida:
                 dist_ida = calculate_route_distance(origem_ida, destino_ida)
                 if dist_ida:
                     st.session_state.ida_carregado = float(dist_ida)
                     st.sidebar.success(f"Rota de Ida encontrada: {dist_ida:.1f} km")
                 else:
-                    st.sidebar.error("Não foi possível calcular a rota de Ida. Verifique o nome das cidades.")
+                    st.sidebar.error("Não foi possível calcular a rota de Ida. Verifique os locais informados ou a chave da API.")
 
             if adicionar_retorno_auto and origem_volta and destino_volta:
                 dist_volta = calculate_route_distance(origem_volta, destino_volta)
@@ -40,7 +40,7 @@ def main():
                     st.session_state.volta_carregado = float(dist_volta)
                     st.sidebar.success(f"Rota de Volta encontrada: {dist_volta:.1f} km")
                 else:
-                    st.sidebar.error("Não foi possível calcular a rota de Volta. Verifique o nome das cidades.")
+                    st.sidebar.error("Não foi possível calcular a rota de Volta. Verifique os locais informados ou a chave da API.")
 
     st.write("---")
 
